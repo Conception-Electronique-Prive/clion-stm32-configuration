@@ -2,17 +2,40 @@
 # Table of Content
 - [Table of Content](#table-of-content)
 - [Compiler](#compiler)
+  - [Finding a compiler for STM32 on Windows](#finding-a-compiler-for-stm32-on-windows)
+  - [Configuring the toolchain in Clion](#configuring-the-toolchain-in-clion)
 - [Setting up OpenOCD in a project](#setting-up-openocd-in-a-project)
   - [Creating the configuration file](#creating-the-configuration-file)
   - [Setting Clion up to run our program](#setting-clion-up-to-run-our-program)
+- [Importing a project from STM32CubeIDE](#importing-a-project-from-stm32cubeide)
+- [Adding NilaiTFO to a project](#adding-nilaitfo-to-a-project)
 
 
 # Compiler
 It goes without saying that to run code on an STM32, you need a compiler capable of building code for ARM.
 
-Since Clion does not come with a built-in compiler, you need to provide our own. This means that every compilers are supported, even MSVC if you are a fanboy!
+Since Clion does not come with a built-in compiler, you need to provide our own.
 
 **However, it is extremely important to note that when working on embedded projects using Windows, Clion does not support Cygwin, it only supports Mingw!!!**
+
+## Finding a compiler for STM32 on Windows
+Since we must use GCC for ARM in Clion, we need to find a version of GCC that does that, which is an adventure on Windows. We will thus use a shortcut and "borrow" STM32CubeIDE's GCC.
+
+- Navigate to the installation folder of STM32CubeIDE. Mine is located at `C:/ST/STM32CubeIDE_1.0.2/STM32CubeIDE`
+- In the `plugins` directory, find the `com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.7-2018-q2-uipdate.win32_XXXXX` directory. You may have it multiple times with multiple different version, just open the most recent one.
+- Copy the `tools` folder located within it somewhere else on your computer, feel free to rename it
+- Add the directory to your system's PATH, Clion needs it to find GCC.
+- There you go! GCC compiler supporting C++17 on Windows with no trouble at all! :) 
+
+## Configuring the toolchain in Clion
+For Clion to be able to compile a STM32 project, we need to specify a toolchain that is able to generate code for ARM processors.
+
+- Open up Clion's settings (File -> Settings)
+- Under `Build, Execution, Deployment`, select `Toolchains`
+- Click the `+` icon to create a new toolchain configuration and select your favorite environment.
+    **NOTE:** *On Windows, only MinGW is supported for embedded projects!*
+- If desired, set this toolchain as the default one.
+- Let CMake detect the compilers, but specify the path to your GDB for ARM
 
 # Setting up OpenOCD in a project
 The default board configurations provided by OpenOCD may not be exactly what we need in a project that uses a custom board design. For this, we need to create a custom configuration file that integrates both the target and interface informations.
@@ -44,3 +67,22 @@ The target, executable and GDB fields should already be filed. If they aren't:
 Next, specify the [board configuration file](#creating-the-configuration-file) that we just created.
 
 You can then run and debug your program as you wish!
+
+# Importing a project from STM32CubeIDE
+**It is highly recommended to migrate to Clion into a new branch, to avoid risks of breaking the repository!**
+
+To import a project from STM32CubeIDE into Clion, you must first modify the `.ioc` file so that it generates the project files in a format that Clion understands.
+To do that:
+  - Create a copy of the `.ioc` file
+  - In Clion, create a new STM32 project (File -> New Project -> STM32CubeMX), at the location of your project
+  - A prompt will appear saying that the directory is not empty. Select `Create from Existing Sources`.
+  - Clion will now have create a new `.ioc` file bearing the name of the project. Delete this file, and rename your copy of the `.ioc` to its original name
+
+# Adding NilaiTFO to a project
+- Clone [NilaiTFO](https://github.com/smartel99/NilaiTFO) into your project
+- In CMakeLists_template.txt (**Not CMakeLists.txt**), add the following:
+```
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -include [path/to/NilaiTFOConfig.h] -include [path/to/nilai/defines/compilerDefines.h]")
+include_directories(${includes} [root/of/nilai])
+file(GLOB_RECURSE SOURCES ${sources} "[path/to/nilai]/*.*")
+```
